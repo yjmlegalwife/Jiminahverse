@@ -1,0 +1,181 @@
+<<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jiminah's VR World</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: black;
+      overflow: hidden;
+    }
+    #overlay {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      z-index: 10;
+    }
+    button {
+      background: peachpuff;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 10px #ffc;
+      border: none;
+    }
+    #messageBubble {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      color: black;
+      padding: 12px 20px;
+      border-radius: 20px;
+      font-size: 18px;
+      display: none;
+      max-width: 60%;
+      text-align: center;
+      box-shadow: 0 0 15px rgba(255,255,255,0.2);
+      z-index: 10;
+    }
+    .fade {
+      animation: fadein 2s;
+    }
+    @keyframes fadein {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <button onclick="setMode('normal')">🌐 Normal Mode</button>
+    <button onclick="setMode('vr')">🥽 VR Mode</button>
+    <button onclick="startStory()">▶️ Start Story</button>
+  </div>
+  <div id="messageBubble"></div>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js';
+    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/loaders/GLTFLoader.js';
+    import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/webxr/VRButton.js';
+
+    let camera, scene, renderer;
+    let currentScene = 0;
+    const scenes = [
+      null,
+      'assets/sci-fi_interior_room.glb',
+      'assets/japanese_restaurant_inakaya.glb',
+      null
+    ];
+
+    const jiminahSound = new Audio('assets/jiminah-sound.wav');
+    const jiminahBeep = new Audio('assets/Jiminah_beep.wav');
+    const bgm = new Audio('assets/bgm.wav');
+    bgm.loop = true;
+    bgm.volume = 0.3;
+
+    const bubble = document.getElementById('messageBubble');
+
+    const messages = [
+      "Hi! I'm Jiminah! Let's explore the world together! 🤖💫",
+      "This is the AI World!\n✅ Advantages: Fast tech, bots help, efficient living.\n⚠️ Disadvantages: Job loss, data privacy, dependence.",
+      "Now in the world WITHOUT AI! 🍃\n✅ Advantages: Full control, more jobs, human touch.\n⚠️ Disadvantages: Slower progress, harder tasks.",
+      "Conclusion: Every world has pros and cons. It's all about balance! 💖"
+    ];
+
+    const durations = [30000, 90000, 60000, 30000];
+
+    function showMessage(text, duration = 3000) {
+      bubble.innerText = text;
+      bubble.classList.add('fade');
+      bubble.style.display = 'block';
+      jiminahBeep.play();
+      setTimeout(() => {
+        bubble.style.display = 'none';
+        bubble.classList.remove('fade');
+      }, duration);
+    }
+
+    function setMode(mode) {
+      if (mode === 'vr') {
+        document.body.appendChild(VRButton.createButton(renderer));
+      }
+    }
+
+    function startStory() {
+      bgm.play();
+      currentScene = 0;
+      playScene(0);
+    }
+
+    function playScene(step) {
+      if (step < messages.length) {
+        if (scenes[step]) loadScene(scenes[step]);
+        showMessage(messages[step], durations[step] * 0.9);
+        setTimeout(() => playScene(step + 1), durations[step]);
+      }
+    }
+
+    function init() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x000000);
+
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 100);
+      camera.position.set(0, 1.6, 3);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      document.body.appendChild(renderer.domElement);
+
+      const light = new THREE.HemisphereLight(0xffffff, 0x444444);
+      light.position.set(0, 20, 0);
+      scene.add(light);
+
+      loadJiminah();
+      animate();
+    }
+
+    function loadScene(path) {
+      const loader = new GLTFLoader();
+      loader.load(path, (gltf) => {
+        scene.clear();
+        const light = new THREE.HemisphereLight(0xffffff, 0x444444);
+        light.position.set(0, 20, 0);
+        scene.add(light);
+        scene.add(gltf.scene);
+        loadJiminah();
+      });
+    }
+
+    function loadJiminah() {
+      const loader = new GLTFLoader();
+      loader.load('assets/jiminah_model.glb', (gltf) => {
+        const jiminah = gltf.scene;
+        jiminah.position.set(0, 0, -1);
+        scene.add(jiminah);
+        jiminahSound.play();
+      });
+    }
+
+    function animate() {
+      renderer.setAnimationLoop(() => {
+        renderer.render(scene, camera);
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>
